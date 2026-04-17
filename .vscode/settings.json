@@ -1,0 +1,21 @@
+{
+    // 保存时自动格式化
+    "editor.formatOnSave": true,
+    // 针对 C++ 文件使用 Microsoft 插件作为默认格式化器
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    // clang-format 配置
+    "C_Cpp.clang_format_path": "/usr/bin/clang-format", // Linux 上的路径
+    "C_Cpp.clang_format_style": "{ BasedOnStyle: Google, IndentWidth: 2 }",
+    "C_Cpp.clang_format_fallbackStyle": "Google",
+    // 针对 Python 文件
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.python",
+        "editor.tabSize": 4, // Tab 显示宽度
+        "editor.insertSpaces": true // 使用空格替代 Tab
+    },
+    // Python 插件使用 Black 作为格式化器
+    "python.formatting.provider": "black",
+    "cmake.sourceDirectory": "/home/jw-zkl/robotics_platform/3rdparty/Livox_SDK2",
+}
