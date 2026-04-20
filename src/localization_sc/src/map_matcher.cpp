@@ -1,5 +1,6 @@
 #include "map_matcher.hpp"
 
+#include <rclcpp/rclcpp.hpp>
 MapMatcher::MapMatcher(const MapMatcherConfig &config) {
   config_ = config;
   const auto &gc = config_.gicp_config_;
@@ -38,6 +39,10 @@ int MapMatcher::fetchClosestKeyframeIdx(
       front_keyframe.pcd_);  // int: nearest node index,
                              // float: relative yaw
   int candidate_keyframe_idx = sc_detected_.first;
+  RCLCPP_INFO(rclcpp::get_logger("MapMatcher"),
+              "ScanContext detected candidate keyframe idx: %d, relative yaw: "
+              "%f",
+              candidate_keyframe_idx, sc_detected_.second);
   if (candidate_keyframe_idx >= 0)  // if exists
   {
     // if close enough
@@ -110,15 +115,18 @@ RegistrationOutput MapMatcher::coarseToFineAlignment(
     const pcl::PointCloud<PointType> &dst) {
   RegistrationOutput reg_output;
   coarse_aligned_.clear();
-
+  // Quatro 做粗配准
   reg_output.pose_between_eig_ =
       (quatro_handler_->align(src, dst, reg_output.is_converged_));
+  // 如果 Quatro 没有收敛，直接返回失败
   if (!reg_output.is_converged_) {
+    RCLCPP_WARN(rclcpp::get_logger("MapMatcher"),
+                "Quatro did not converge. Reject this match.");
     return reg_output;
-  } else  // if valid,
-  {
+  } else {  // if valid,
     // coarse align with the result of Quatro
     coarse_aligned_ = transformPcd(src, reg_output.pose_between_eig_);
+    // icp refine
     const auto &fine_output = icpAlignment(coarse_aligned_, dst);
     const auto quatro_tf_ = reg_output.pose_between_eig_;
     reg_output = fine_output;
@@ -145,13 +153,16 @@ RegistrationOutput MapMatcher::performMapMatcher(
     *dst_cloud_ = dst_cloud;
 
     if (config_.enable_quatro_) {
-      std::cout << "\033[1;35mExecute coarse-to-fine alignment: "
-                << src_cloud.size() << " vs " << dst_cloud.size()
-                << "\033[0m\n";
+      // std::cout << "\033[1;35mExecute coarse-to-fine alignment: "
+      //           << src_cloud.size() << " vs " << dst_cloud.size()
+      //           << "\033[0m\n";
+      RCLCPP_INFO(rclcpp::get_logger("MapMatcher"),
+                  "Execute coarse-to-fine alignment: %d vs %d",
+                  src_cloud.size(), dst_cloud.size());
       return coarseToFineAlignment(src_cloud, dst_cloud);
     } else {
-      std::cout << "\033[1;35mExecute GICP: " << src_cloud.size() << " vs "
-                << dst_cloud.size() << "\033[0m\n";
+      // std::cout << "\033[1;35mExecute GICP: " << src_cloud.size() << " vs "
+      //           << dst_cloud.size() << "\033[0m\n";
       return icpAlignment(src_cloud, dst_cloud);
     }
   } else {

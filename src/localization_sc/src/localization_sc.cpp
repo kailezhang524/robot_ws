@@ -225,14 +225,14 @@ void FastLioLocalizationScQn::odomPcdCallback(
   }
 
   // 检查 keyframe
-  if (checkIfKeyframe(current_frame, last_keyframe_)) {
-    std::lock_guard<std::mutex> lock(keyframes_mutex_);
-    last_keyframe_ = current_frame;
-    current_keyframe_idx_++;
+  //   if (checkIfKeyframe(current_frame, last_keyframe_)) {
+  std::lock_guard<std::mutex> lock(keyframes_mutex_);
+  last_keyframe_ = current_frame;
+  current_keyframe_idx_++;
 
-    std::lock_guard<std::mutex> lock2(vis_mutex_);
-    updateOdomsAndPaths(current_frame);
-  }
+  std::lock_guard<std::mutex> lock2(vis_mutex_);
+  updateOdomsAndPaths(current_frame);
+  //   }
 }
 
 // ----------------------

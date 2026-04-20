@@ -59,6 +59,11 @@ inline PosePcd::PosePcd(const nav_msgs::msg::Odometry &odom_in,
 
   pcl::PointCloud<PointType> tmp_pcd;
   pcl::fromROSMsg(pcd_in, tmp_pcd);
+  tmp_pcd.is_dense = false;
+  //过滤无效点
+  std::vector<int> valid_indices;
+  pcl::removeNaNFromPointCloud(tmp_pcd, tmp_pcd, valid_indices);
+  tmp_pcd.is_dense = true;
   pcd_ = transformPcd(tmp_pcd, pose_eig_.inverse());
 
   idx_ = idx_in;
@@ -84,6 +89,11 @@ inline PosePcdReduced::PosePcdReduced(
   pose_eig_(2, 3) = pose_in.pose.position.z;
 
   pcl::fromROSMsg(pcd_in, pcd_);
+  pcd_.is_dense = false;
+  //过滤无效点
+  std::vector<int> valid_indices;
+  pcl::removeNaNFromPointCloud(pcd_, pcd_, valid_indices);
+  pcd_.is_dense = true;
   idx_ = idx_in;
 }
 

@@ -27,7 +27,7 @@ def generate_launch_description():
     
     mapping= IncludeLaunchDescription(
         PythonLaunchDescriptionSource(mapping_file_path),
-        # launch_arguments={"use_rviz": "false"}.items()
+        launch_arguments={"use_rviz": "true"}.items()
     )
     livox_lidar = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(livox_file_path)
