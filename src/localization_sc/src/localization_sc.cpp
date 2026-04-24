@@ -3,8 +3,9 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <tf2_ros/transform_broadcaster.h>
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <filesystem>
 #include <rclcpp/rclcpp.hpp>
-
 using namespace std::chrono_literals;
 
 FastLioLocalizationScQn::FastLioLocalizationScQn(const std::string &node_name)
@@ -17,12 +18,13 @@ FastLioLocalizationScQn::FastLioLocalizationScQn(const std::string &node_name)
   MapMatcherConfig mm_config;
   auto &gc = mm_config.gicp_config_;
   auto &qc = mm_config.quatro_config_;
-
+  std::filesystem::path package_path =
+      ament_index_cpp::get_package_share_directory("pgo_sc");
   // declare/get parameters
   this->declare_parameter<std::string>("basic.map_frame", "map");
   this->get_parameter("basic.map_frame", map_frame_);
-  this->declare_parameter<std::string>("basic.saved_map",
-                                       "/home/mason/kitti.bag");
+  this->declare_parameter<std::string>(
+      "basic.saved_map", package_path.string() + "/map/result.pcd");
   this->get_parameter("basic.saved_map", saved_map_path);
   this->declare_parameter<double>("basic.map_match_hz", 1.0);
   this->get_parameter("basic.map_match_hz", map_match_hz);
@@ -43,28 +45,30 @@ FastLioLocalizationScQn::FastLioLocalizationScQn(const std::string &node_name)
                       mm_config.voxel_res_);
   this->declare_parameter<int>("nano_gicp.thread_number", 0);
   this->get_parameter("nano_gicp.thread_number", gc.nano_thread_number_);
-  this->declare_parameter<double>("nano_gicp/icp_score_threshold", 10.0);
-  this->get_parameter("nano_gicp/icp_score_threshold", gc.icp_score_thr_);
-  this->declare_parameter<int>("nano_gicp/correspondences_number", 15);
-  this->get_parameter("nano_gicp/correspondences_number",
+  this->declare_parameter<double>("nano_gicp.icp_score_threshold", 10.0);
+  this->get_parameter("nano_gicp.icp_score_threshold", gc.icp_score_thr_);
+  RCLCPP_INFO(this->get_logger(), "Loaded nano_gicp.icp_score_threshold = %.3f",
+              gc.icp_score_thr_);
+  this->declare_parameter<int>("nano_gicp.correspondences_number", 15);
+  this->get_parameter("nano_gicp.correspondences_number",
                       gc.nano_correspondences_number_);
-  this->declare_parameter<double>("nano_gicp/max_correspondence_distance",
+  this->declare_parameter<double>("nano_gicp.max_correspondence_distance",
                                   0.01);
-  this->get_parameter("nano_gicp/max_correspondence_distance",
+  this->get_parameter("nano_gicp.max_correspondence_distance",
                       gc.max_corr_dist_);
-  this->declare_parameter<int>("nano_gicp/max_iter", 32);
-  this->get_parameter("nano_gicp/max_iter", gc.nano_max_iter_);
-  this->declare_parameter<double>("nano_gicp/transformation_epsilon", 0.01);
-  this->get_parameter("nano_gicp/transformation_epsilon",
+  this->declare_parameter<int>("nano_gicp.max_iter", 32);
+  this->get_parameter("nano_gicp.max_iter", gc.nano_max_iter_);
+  this->declare_parameter<double>("nano_gicp.transformation_epsilon", 0.01);
+  this->get_parameter("nano_gicp.transformation_epsilon",
                       gc.transformation_epsilon_);
-  this->declare_parameter<double>("nano_gicp/euclidean_fitness_epsilon", 0.01);
-  this->get_parameter("nano_gicp/euclidean_fitness_epsilon",
+  this->declare_parameter<double>("nano_gicp.euclidean_fitness_epsilon", 0.01);
+  this->get_parameter("nano_gicp.euclidean_fitness_epsilon",
                       gc.euclidean_fitness_epsilon_);
-  this->declare_parameter<int>("nano_gicp/ransac/max_iter", 5);
-  this->get_parameter("nano_gicp/ransac/max_iter", gc.nano_ransac_max_iter_);
+  this->declare_parameter<int>("nano_gicp.ransac.max_iter", 5);
+  this->get_parameter("nano_gicp.ransac.max_iter", gc.nano_ransac_max_iter_);
   this->declare_parameter<double>(
-      "nano_gicp/ransac/outlier_rejection_threshold", 1.0);
-  this->get_parameter("nano_gicp/ransac/outlier_rejection_threshold",
+      "nano_gicp.ransac.outlier_rejection_threshold", 1.0);
+  this->get_parameter("nano_gicp.ransac.outlier_rejection_threshold",
                       gc.ransac_outlier_rejection_threshold_);
   this->declare_parameter<bool>("quatro.enable", false);
   this->get_parameter("quatro.enable", mm_config.enable_quatro_);
@@ -73,24 +77,24 @@ FastLioLocalizationScQn::FastLioLocalizationScQn(const std::string &node_name)
   this->declare_parameter<double>("quatro.distance_threshold", 30.0);
   this->get_parameter("quatro.distance_threshold",
                       qc.quatro_distance_threshold_);
-  this->declare_parameter<int>("quatro/max_correspondences", 200);
-  this->get_parameter("quatro/max_correspondences", qc.quatro_max_num_corres_);
-  this->declare_parameter<double>("quatro/fpfh_normal_radius", 0.02);
-  this->get_parameter("quatro/fpfh_normal_radius", qc.fpfh_normal_radius_);
-  this->declare_parameter<double>("quatro/fpfh_radius", 0.04);
-  this->get_parameter("quatro/fpfh_radius", qc.fpfh_radius_);
+  this->declare_parameter<int>("quatro.max_correspondences", 200);
+  this->get_parameter("quatro.max_correspondences", qc.quatro_max_num_corres_);
+  this->declare_parameter<double>("quatro.fpfh_normal_radius", 0.02);
+  this->get_parameter("quatro.fpfh_normal_radius", qc.fpfh_normal_radius_);
+  this->declare_parameter<double>("quatro.fpfh_radius", 0.04);
+  this->get_parameter("quatro.fpfh_radius", qc.fpfh_radius_);
   this->declare_parameter<bool>("quatro.estimating_scale", false);
   this->get_parameter("quatro.estimating_scale", qc.estimat_scale_);
-  this->declare_parameter<double>("quatro/noise_bound", 0.25);
-  this->get_parameter("quatro/noise_bound", qc.noise_bound_);
-  this->declare_parameter<double>("quatro/rotation/gnc_factor", 0.25);
-  this->get_parameter("quatro/rotation/gnc_factor", qc.rot_gnc_factor_);
-  this->declare_parameter<double>("quatro/rotation/rot_cost_diff_threshold",
+  this->declare_parameter<double>("quatro.noise_bound", 0.25);
+  this->get_parameter("quatro.noise_bound", qc.noise_bound_);
+  this->declare_parameter<double>("quatro.rotation.gnc_factor", 0.25);
+  this->get_parameter("quatro.rotation.gnc_factor", qc.rot_gnc_factor_);
+  this->declare_parameter<double>("quatro.rotation.rot_cost_diff_threshold",
                                   0.25);
-  this->get_parameter("quatro/rotation/rot_cost_diff_threshold",
+  this->get_parameter("quatro.rotation.rot_cost_diff_threshold",
                       qc.rot_cost_diff_thr_);
-  this->declare_parameter<int>("quatro/rotation/num_max_iter", 50);
-  this->get_parameter("quatro/rotation/num_max_iter", qc.quatro_max_iter_);
+  this->declare_parameter<int>("quatro.rotation.num_max_iter", 50);
+  this->get_parameter("quatro.rotation.num_max_iter", qc.quatro_max_iter_);
 
   // -----------------------
   // 2. Initialize map matcher
@@ -180,6 +184,12 @@ void FastLioLocalizationScQn::odomPcdCallback(
       last_corrected_TF_ * current_frame.pose_eig_;
   geometry_msgs::msg::PoseStamped current_pose_stamped =
       poseEigToPoseStamped(current_frame.pose_corrected_eig_, map_frame_);
+  // 打印位置 (x, y, z)
+  RCLCPP_INFO(this->get_logger(),
+              "Current pose - Position: [x: %.3f, y: %.3f, z: %.3f]",
+              current_pose_stamped.pose.position.x,
+              current_pose_stamped.pose.position.y,
+              current_pose_stamped.pose.position.z);
   realtime_pose_pub_->publish(current_pose_stamped);
 
   nav_msgs::msg::Odometry corrected_odom;
@@ -257,7 +267,8 @@ void FastLioLocalizationScQn::matchingTimerFunc() {
 
   const RegistrationOutput &reg_output = map_matcher_->performMapMatcher(
       last_keyframe_copy, saved_map_from_bag_, closest_keyframe_idx);
-
+  RCLCPP_INFO(this->get_logger(), "Map matching accepted. Score: %.d",
+              reg_output.is_valid_);
   if (reg_output.is_valid_) {
     RCLCPP_INFO(this->get_logger(), "Map matching accepted. Score: %.3f",
                 reg_output.score_);

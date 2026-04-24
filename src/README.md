@@ -48,7 +48,7 @@ colcon build --packages-select nano_gicp --cmake-args -DCMAKE_BUILD_TYPE=Release
 colcon build --packages-select quatro --cmake-args -DCMAKE_BUILD_TYPE=Release -DQUATRO_TBB=ON
 
 # 再编译整个工作空间
-colcon build --symlink-install --parallel-workers 8 --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
+colcon build --symlink-install --parallel-workers 2 --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
 source install/setup.bash
 ```
 

@@ -1,4 +1,4 @@
-# localization_sc_launch.py
+import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -7,19 +7,26 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 from launch.conditions import IfCondition
 def generate_launch_description():
-
+    config_file_path = os.path.join(get_package_share_directory('localization_sc'), 'config', 'config.yaml')
+    mapping_file_path =os.path.join(get_package_share_directory('fast_lio'), 'launch', 'mapping.launch.py')
+    livox_file_path =os.path.join(get_package_share_directory('livox_ros_driver2'), 'launch_ROS2', 'msg_MID360s_launch.py')
     # Launch arguments
     rviz_arg = DeclareLaunchArgument('rviz', default_value='true')
-    lidar_arg = DeclareLaunchArgument('lidar', default_value='livox')
     odom_topic_arg = DeclareLaunchArgument('odom_topic', default_value='/Odometry')
     lidar_topic_arg = DeclareLaunchArgument('lidar_topic', default_value='/cloud_registered')
-
-    # Get package paths
-    fast_lio_loc_dir = get_package_share_directory('localization_sc')
+    
+    mapping= IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(mapping_file_path),
+        launch_arguments={"use_rviz": "true"}.items()
+    )
     # fast_lio_sam_dir = get_package_share_directory('fast_lio_sam_sc_qn')
-
+    livox_lidar = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(livox_file_path)
+    )
     return LaunchDescription([
         # Launch arguments
+        livox_lidar,
+        mapping,
         rviz_arg,
         odom_topic_arg,
         lidar_topic_arg,
@@ -40,17 +47,10 @@ def generate_launch_description():
             executable='localization_sc_node',
             name='localization_sc_node',
             output='screen',
-            parameters=[PathJoinSubstitution([fast_lio_loc_dir, 'config', 'config.yaml'])],
+            parameters=[config_file_path],
             remappings=[
                 ('/Odometry', LaunchConfiguration('odom_topic')),
                 ('/cloud_registered', LaunchConfiguration('lidar_topic'))
             ]
         ),
-
-        # Include Fast LIO SAM localization launch
-        # IncludeLaunchDescription(
-        #     PythonLaunchDescriptionSource(
-        #         PathJoinSubstitution([fast_lio_sam_dir, 'launch', 'run_localization.launch.py'])
-        #     )
-        # )
     ])

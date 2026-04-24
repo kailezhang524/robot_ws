@@ -129,7 +129,9 @@ PgoSc::PgoSc()
   /* ROS things */
   odom_path_.header.frame_id = map_frame_;
   corrected_path_.header.frame_id = map_frame_;
-  package_path_ = ament_index_cpp::get_package_share_directory("pgo_sc");
+  std::filesystem::path package_path =
+      ament_index_cpp::get_package_share_directory("pgo_sc");
+  package_path_ = package_path / "map";
 
   /* QoS */
   auto qos_latched =
@@ -598,8 +600,19 @@ void PgoSc::saveFlagCallback(const std_msgs::msg::String::SharedPtr msg) {
 // ====================== Destructor ======================
 PgoSc::~PgoSc() {
   if (save_map_bag_) {
+    std::string bag_path = package_path_ + "/result_bag";
+    std::error_code ec;
+    if (fs::exists(bag_path, ec)) {
+      fs::remove_all(bag_path, ec);
+      if (ec) {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Failed to remove existing bag directory: %s",
+                     ec.message().c_str());
+        return;
+      }
+    }
     rosbag2_cpp::Writer writer;
-    writer.open(package_path_ + "/result_bag");
+    writer.open(bag_path);
 
     writer.create_topic({"/keyframe_pcd", "sensor_msgs/msg/PointCloud2",
                          rmw_get_serialization_format(), ""});

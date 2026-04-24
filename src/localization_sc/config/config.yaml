@@ -3,7 +3,7 @@
     basic:
       map_frame: "map"                              # 发布坐标系
       map_match_hz: 2.0                             # 地图匹配频率
-      saved_map: "/home/jw-zkl/robotics_platform/robot_ws/result_bag"   # 地图包路径，必须使用绝对路径
+      #saved_map: "/home/jw-zkl/ros_ws/map/result_bag"   # 地图包路径，必须使用绝对路径
       visualize_voxel_size: 0.3                     # 可视化时的体素降采样分辨率
 
     keyframe:
@@ -27,7 +27,7 @@
         outlier_rejection_threshold: 1.0            # RANSAC 外点剔除阈值
 
     quatro:                                         # 以下参数来自 Quatro 官方仓库,Quatro需要雷达数据稠密
-      enable: false                                  # 是否启用 Quatro；若为 false，则退化为 FAST-LIO-SAM-N（仅使用 Nano-GICP）
+      enable: true                                  # 是否启用 Quatro；若为 false，则退化为 FAST-LIO-SAM-N（仅使用 Nano-GICP）
       optimize_matching: true                       # 是否启用优化后的特征匹配策略
       distance_threshold: 30.0                      # 在优化匹配模式下，仅使用该半径范围内的对应关系，单位 [米]
       max_correspondences: 350                      # 优化匹配时允许使用的最大对应点数量

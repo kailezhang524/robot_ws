@@ -1,5 +1,5 @@
-#ifndef PGO_SC_MAIN_H
-#define PGO_SC_MAIN_H
+#ifndef PGO_SC_MAIN_HPP
+#define PGO_SC_MAIN_HPP
 
 ///// common headers
 #include <chrono>

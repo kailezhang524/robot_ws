@@ -36,8 +36,8 @@ def generate_launch_description():
         use_rviz_arg,
         odom_topic_arg,
         lidar_topic_arg,
+        livox_lidar,
         mapping,
-        # livox_lidar,
         Node(       
             package='pgo_sc',
             executable='pgo_sc_node',
