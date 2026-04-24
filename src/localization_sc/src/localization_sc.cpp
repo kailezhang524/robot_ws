@@ -24,7 +24,7 @@ FastLioLocalizationScQn::FastLioLocalizationScQn(const std::string &node_name)
   this->declare_parameter<std::string>("basic.map_frame", "map");
   this->get_parameter("basic.map_frame", map_frame_);
   this->declare_parameter<std::string>(
-      "basic.saved_map", package_path.string() + "/map/result.pcd");
+      "basic.saved_map", package_path.string() + "/map/result_bag");
   this->get_parameter("basic.saved_map", saved_map_path);
   this->declare_parameter<double>("basic.map_match_hz", 1.0);
   this->get_parameter("basic.map_match_hz", map_match_hz);
