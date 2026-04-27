@@ -1,0 +1,210 @@
+# ============================================================================
+# controller_server 控制器服务器配置
+# 负责接收全局规划路径，并生成具体的控制指令（速度、角速度）驱动机器人移动
+# ============================================================================
+controller_server:
+  ros__parameters:
+    # 是否使用仿真时间（在真实机器人上通常设为 false，Gazebo 仿真中设为 true）
+    use_sim_time: false
+
+    # 控制器运行频率 (Hz)，即每秒计算多少次控制指令
+    controller_frequency: 20.0
+    # 里程计话题名称，用于获取机器人当前位姿和速度
+    odom_topic: /Odometry
+
+    # 速度阈值：低于此值的线速度被视为停止（用于判断机器人是否停稳）
+    min_x_velocity_threshold: 0.001
+    # 横向速度阈值（普通差速/阿克曼底盘通常没有横向速度，设为较大值避免误判）
+    min_y_velocity_threshold: 0.5
+    # 角速度阈值：低于此值的角速度被视为停止
+    min_theta_velocity_threshold: 0.001
+
+    # 失败容忍时间 (秒)：控制器在此时间内无进展则报告失败
+    failure_tolerance: 0.3
+    # 进度检查器插件：监控机器人是否在向前移动
+    progress_checker_plugin: "progress_checker"
+    # 目标检查器插件：判断机器人是否已到达目标点
+    goal_checker_plugins: ["general_goal_checker"]
+    # 控制器插件：实际执行路径跟踪的局部规划器
+    controller_plugins: ["FollowPath"]
+
+    # ------------------------------------------------------------------------
+    # 进度检查器配置：判断机器人是否卡住/没有进展
+    # ------------------------------------------------------------------------
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      # 需要移动的最小半径 (米)：在此时间内必须移动超过此距离，否则认为卡住
+      required_movement_radius: 0.3
+      # 允许的移动时间 (秒)：在此时间内未移动 required_movement_radius 则认为失败
+      movement_time_allowance: 10.0
+
+    # ------------------------------------------------------------------------
+    # 通用目标检查器配置：判断是否到达目标点
+    # ------------------------------------------------------------------------
+    general_goal_checker:
+      plugin: "nav2_controller::SimpleGoalChecker"
+      # 是否记住之前的状态（用于连续判断）
+      stateful: true
+      # XY 平面上的目标容差 (米)：距离目标点小于此值即认为位置到达
+      xy_goal_tolerance: 0.25
+      # 角度目标容差 (弧度)：朝向与目标朝向偏差小于此值即认为角度到达
+      yaw_goal_tolerance: 0.25
+
+    # ------------------------------------------------------------------------
+    # FollowPath 控制器：基于 DWB (Dynamic Window Based) 的局部规划器
+    # 负责在局部代价地图上生成平滑、避障的轨迹
+    # ------------------------------------------------------------------------
+    FollowPath:
+      plugin: "dwb_core::DWBLocalPlanner"
+      # 是否输出详细的轨迹调试信息（用于可视化调试）
+      debug_trajectory_details: true
+
+      # ---------------------- 运动学约束 ----------------------
+      # 最小/最大线速度 (m/s) - 适用于差速/阿克曼底盘（无法横向移动）
+      min_vel_x: 0.0          # 最小前进速度（不允许倒车时为 0）
+      max_vel_x: 0.4          # 最大前进速度
+      min_vel_y: 0.0          # 最小横向速度（普通底盘为 0）
+      max_vel_y: 0.0          # 最大横向速度（普通底盘为 0）
+      # 最大角速度 (rad/s)
+      max_vel_theta: 1.0
+
+      # 速度采样边界
+      min_speed_xy: 0.0       # 最小 XY 平面线速度
+      max_speed_xy: 0.4       # 最大 XY 平面线速度
+      min_speed_theta: 0.0    # 最小角速度
+
+      # ---------------------- 加速度约束 ----------------------
+      acc_lim_x: 0.8          # 最大线加速度 (m/s²)
+      acc_lim_y: 0.0          # 最大横向加速度（普通底盘为 0）
+      acc_lim_theta: 1.5      # 最大角加速度 (rad/s²)
+      decel_lim_x: -0.8       # 最大线减速度（负值表示减速）
+      decel_lim_y: 0.0
+      decel_lim_theta: -1.5
+
+      # ---------------------- 采样参数 ----------------------
+      vx_samples: 20          # 线速度采样数量（越多轨迹越密集，但计算量越大）
+      vy_samples: 1           # 横向速度采样数量（普通底盘为 1，只采样 0）
+      vtheta_samples: 20      # 角速度采样数量
+
+      # ---------------------- 轨迹预测参数 ----------------------
+      sim_time: 1.7           # 轨迹模拟时间 (秒)：向前预测多长时间的轨迹
+      linear_granularity: 0.05   # 轨迹线性插值粒度 (米)
+      angular_granularity: 0.025 # 轨迹角度插值粒度 (弧度)
+      transform_tolerance: 0.2   # TF 变换容差 (秒)
+
+      # ---------------------- 目标与停止条件 ----------------------
+      xy_goal_tolerance: 0.25    # 到达目标的距离容差
+      trans_stopped_velocity: 0.25  # 判定为停止的平移速度阈值 (m/s)
+      # 是否短路轨迹评估：如果当前速度已达目标则跳过部分计算，提升性能
+      short_circuit_trajectory_evaluation: true
+      stateful: true          # 保存状态跨多个周期（用于振荡检测等）
+
+      # ---------------------- 评分器 (Critics) ----------------------
+      # 用于评估每条候选轨迹，加权求和后选择最佳轨迹
+      critics:
+        [
+          "RotateToGoal",    # 鼓励朝向目标点旋转
+          "Oscillation",     # 惩罚来回振荡的运动
+          "BaseObstacle",    # 惩罚靠近障碍物
+          "GoalAlign",       # 鼓励对齐目标朝向
+          "PathAlign",       # 鼓励对齐全局路径方向
+          "PathDist",        # 惩罚偏离全局路径
+          "GoalDist"         # 惩罚远离目标点
+        ]
+
+      # ---------------------- 各评分器权重与参数 ----------------------
+      # 障碍物代价权重（值越小，对障碍物越不敏感）
+      BaseObstacle.scale: 0.02
+      
+      # 路径对齐权重（高值意味着强迫紧贴全局路径）
+      PathAlign.scale: 32.0
+      PathAlign.forward_point_distance: 0.1   # 向前采样点的距离 (米)
+      
+      # 目标对齐权重
+      GoalAlign.scale: 24.0
+      GoalAlign.forward_point_distance: 0.1
+      
+      # 路径距离代价权重（偏离路径的惩罚）
+      PathDist.scale: 32.0
+      # 目标距离代价权重（远离目标的惩罚）
+      GoalDist.scale: 24.0
+      
+      # 旋转到目标的行为权重
+      RotateToGoal.scale: 32.0
+      RotateToGoal.slowing_factor: 5.0        # 接近目标时的减速因子
+      RotateToGoal.lookahead_time: -1.0       # 前视时间（-1 表示使用默认）
+
+# ============================================================================
+# local_costmap 局部代价地图配置
+# 负责创建机器人周围的动态障碍物地图，供局部规划器使用
+# ============================================================================
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      # 是否使用仿真时间
+      use_sim_time: false
+
+      # 坐标系设置
+      global_frame: odom           # 全局参考坐标系（里程计坐标系）
+      robot_base_frame: base_link  # 机器人本体坐标系
+
+      # 更新频率
+      update_frequency: 10.0       # 代价地图更新频率 (Hz)
+      publish_frequency: 5.0       # 代价地图发布频率 (Hz)
+
+      # 地图配置：滚动窗口模式（地图随机器人移动）
+      rolling_window: true         # 启用滚动窗口（始终以机器人为中心）
+      width: 6                     # 地图宽度 (米)
+      height: 6                    # 地图高度 (米)
+      resolution: 0.05             # 地图分辨率 (米/像素) - 5cm 精度
+
+      # 机器人几何参数（用于足迹/半径）
+      robot_radius: 0.30           # 机器人半径 (米) - 用于圆形足迹模型
+
+      # 图层插件：分层处理不同类型的障碍物信息
+      plugins: ["voxel_layer", "inflation_layer"]
+
+      # --------------------------------------------------------------------
+      # 体素层 (Voxel Layer)：处理 3D 点云数据，将点云投影到 2D 代价地图
+      # --------------------------------------------------------------------
+      voxel_layer:
+        plugin: "nav2_costmap_2d::VoxelLayer"
+        enabled: true
+        publish_voxel_map: true    # 是否发布体素地图（用于可视化）
+        
+        # 体素网格配置（将空间划分为 3D 小立方体）
+        origin_z: 0.0              # 体网格最低点高度 (米)
+        z_resolution: 0.05         # Z 轴分辨率 (米) - 与 XY 平面分辨率一致
+        z_voxels: 16               # Z 轴体素数量（总高度 = 0.05 × 16 = 0.8 米）
+        max_obstacle_height: 1.5   # 最大障碍物高度 (米)，高于此的物体忽略
+        
+        # 标记阈值：体素内需要多少点才标记为障碍物（0 表示只要有 1 点就标记）
+        mark_threshold: 0
+        
+        # 观测源配置：使用哪个传感器话题输入数据
+        observation_sources: pointcloud    # 使用点云数据
+        
+        pointcloud:
+          topic: /cloud_registered         # 点云话题名称
+          data_type: "PointCloud2"         # 数据类型
+          marking: true                    # 是否将此数据用于障碍物标记
+          clearing: true                   # 是否将此数据用于障碍物清除
+          obstacle_max_range: 4.0          # 障碍物最大检测距离 (米)
+          obstacle_min_range: 0.1          # 障碍物最小检测距离 (米)
+          raytrace_max_range: 5.0          # 光线追踪最大距离（用于清除）
+          raytrace_min_range: 0.1
+          min_obstacle_height: 0.05        # 视为障碍物的最小高度 (米)
+          max_obstacle_height: 1.5         # 视为障碍物的最大高度 (米)
+
+      # --------------------------------------------------------------------
+      # 膨胀层 (Inflation Layer)：
+      # 在障碍物周围生成梯度代价，使机器人保持安全距离
+      # --------------------------------------------------------------------
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        enabled: true
+        inflation_radius: 0.45             # 膨胀半径 (米) - 机器人中心必须保持的安全距离
+        cost_scaling_factor: 3.0           # 代价衰减因子（越大，越靠近障碍物的代价越高）
+
+      # 是否始终发布完整的代价地图（而非仅发布变化区域）
+      always_send_full_costmap: true

@@ -167,7 +167,7 @@ FastLioLocalizationScQn::FastLioLocalizationScQn(const std::string &node_name)
   // -----------------------
   // 6. TF Broadcaster
   // -----------------------
-  broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+  broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
 
   RCLCPP_WARN(this->get_logger(), "FastLioLocalizationScQn node started...");
 }
@@ -191,6 +191,17 @@ void FastLioLocalizationScQn::odomPcdCallback(
               current_pose_stamped.pose.position.y,
               current_pose_stamped.pose.position.z);
   realtime_pose_pub_->publish(current_pose_stamped);
+  {
+    geometry_msgs::msg::TransformStamped tf_msg;
+
+    tf_msg.header.stamp = this->get_clock()->now();
+    tf_msg.header.frame_id = map_frame_;
+    tf_msg.child_frame_id = "odom";
+
+    tf_msg.transform = poseEigToROSTf2(current_frame.pose_corrected_eig_);
+
+    broadcaster_->sendTransform(tf_msg);
+  }
 
   nav_msgs::msg::Odometry corrected_odom;
   corrected_odom.header.stamp = odom_msg->header.stamp;
@@ -411,6 +422,26 @@ bool FastLioLocalizationScQn::checkIfKeyframe(const PosePcd &pose_pcd_in,
   Eigen::Vector3d diff = latest_pose_pcd.pose_corrected_eig_.block<3, 1>(0, 3) -
                          pose_pcd_in.pose_corrected_eig_.block<3, 1>(0, 3);
   return diff.norm() > keyframe_dist_thr_;
+}
+
+geometry_msgs::msg::Transform FastLioLocalizationScQn::poseEigToROSTf2(
+    const Eigen::Matrix4d &pose) {
+  geometry_msgs::msg::Transform transform;
+
+  transform.translation.x = pose(0, 3);
+  transform.translation.y = pose(1, 3);
+  transform.translation.z = pose(2, 3);
+
+  Eigen::Matrix3d rotation = pose.block<3, 3>(0, 0);
+  Eigen::Quaterniond q(rotation);
+  q.normalize();
+
+  transform.rotation.x = q.x();
+  transform.rotation.y = q.y();
+  transform.rotation.z = q.z();
+  transform.rotation.w = q.w();
+
+  return transform;
 }
 
 // ----------------------

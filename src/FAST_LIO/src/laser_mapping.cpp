@@ -23,7 +23,7 @@ LaserMappingNode::LaserMappingNode(const rclcpp::NodeOptions &options)
   readParameters();
   // 初始化path的header（包括时间戳和帧id），path用于保存odemetry的路径
   path.header.stamp = this->get_clock()->now();
-  path.header.frame_id = "camera_init";
+  path.header.frame_id = "odom";
   initializeComponents();
   initializeFiles();
   initializeSubscribersAndPublishers();
@@ -897,7 +897,7 @@ void LaserMappingNode::publish_frame_world(
     pcl::toROSMsg(*laserCloudWorld, laserCloudmsg);
     // laserCloudmsg.header.stamp = ros::Time().fromSec(lidar_end_time);
     laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
-    laserCloudmsg.header.frame_id = "camera_init";
+    laserCloudmsg.header.frame_id = "odom";
     pubLaserCloudFull->publish(laserCloudmsg);
     publish_count -= PUBFRAME_PERIOD;
   }
@@ -950,7 +950,7 @@ void LaserMappingNode::publish_frame_body(
   sensor_msgs::msg::PointCloud2 laserCloudmsg;
   pcl::toROSMsg(*laserCloudIMUBody, laserCloudmsg);
   laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
-  laserCloudmsg.header.frame_id = "body";
+  laserCloudmsg.header.frame_id = "base_link";
   pubLaserCloudFull_body->publish(laserCloudmsg);
   publish_count -= PUBFRAME_PERIOD;
 }
@@ -965,7 +965,7 @@ void LaserMappingNode::publish_effect_world(
   sensor_msgs::msg::PointCloud2 laserCloudFullRes3;
   pcl::toROSMsg(*laserCloudWorld, laserCloudFullRes3);
   laserCloudFullRes3.header.stamp = get_ros_time(lidar_end_time);
-  laserCloudFullRes3.header.frame_id = "camera_init";
+  laserCloudFullRes3.header.frame_id = "odom";
   pubLaserCloudEffect->publish(laserCloudFullRes3);
 }
 
@@ -987,13 +987,13 @@ void LaserMappingNode::publish_map(
   pcl::toROSMsg(*pcl_wait_pub, laserCloudmsg);
   // laserCloudmsg.header.stamp = ros::Time().fromSec(lidar_end_time);
   laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
-  laserCloudmsg.header.frame_id = "camera_init";
+  laserCloudmsg.header.frame_id = "odom";
   pubLaserCloudMap->publish(laserCloudmsg);
 
   // sensor_msgs::msg::PointCloud2 laserCloudMap;
   // pcl::toROSMsg(*featsFromMap, laserCloudMap);
   // laserCloudMap.header.stamp = get_ros_time(lidar_end_time);
-  // laserCloudMap.header.frame_id = "camera_init";
+  // laserCloudMap.header.frame_id = "odom";
   // pubLaserCloudMap->publish(laserCloudMap);
 }
 
@@ -1001,8 +1001,8 @@ void LaserMappingNode::publish_odometry(
     const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr
         pubOdomAftMapped,
     std::unique_ptr<tf2_ros::TransformBroadcaster> &tf_br) {
-  odomAftMapped.header.frame_id = "camera_init";
-  odomAftMapped.child_frame_id = "body";
+  odomAftMapped.header.frame_id = "odom";
+  odomAftMapped.child_frame_id = "base_link";
   odomAftMapped.header.stamp = get_ros_time(lidar_end_time);
   set_posestamp(odomAftMapped.pose);
   pubOdomAftMapped->publish(odomAftMapped);
@@ -1018,9 +1018,9 @@ void LaserMappingNode::publish_odometry(
   }
 
   geometry_msgs::msg::TransformStamped trans;
-  trans.header.frame_id = "camera_init";
+  trans.header.frame_id = "odom";
   trans.header.stamp = odomAftMapped.header.stamp;
-  trans.child_frame_id = "body";
+  trans.child_frame_id = "base_link";
   trans.transform.translation.x = odomAftMapped.pose.pose.position.x;
   trans.transform.translation.y = odomAftMapped.pose.pose.position.y;
   trans.transform.translation.z = odomAftMapped.pose.pose.position.z;
@@ -1036,7 +1036,7 @@ void LaserMappingNode::publish_path(
   set_posestamp(msg_body_pose);
   msg_body_pose.header.stamp =
       get_ros_time(lidar_end_time);  // ros::Time().fromSec(lidar_end_time);
-  msg_body_pose.header.frame_id = "camera_init";
+  msg_body_pose.header.frame_id = "odom";
 
   /*** if path is too large, the rvis will crash ***/
   static int jjj = 0;

@@ -14,7 +14,10 @@ def generate_launch_description():
     rviz_arg = DeclareLaunchArgument('rviz', default_value='true')
     odom_topic_arg = DeclareLaunchArgument('odom_topic', default_value='/Odometry')
     lidar_topic_arg = DeclareLaunchArgument('lidar_topic', default_value='/cloud_registered')
-    
+    declare_use_sim_time_cmd = DeclareLaunchArgument(
+        'use_sim_time', default_value='false',
+        description='Use simulation (Gazebo) clock if true'
+    )
     mapping= IncludeLaunchDescription(
         PythonLaunchDescriptionSource(mapping_file_path),
         launch_arguments={"use_rviz": "true"}.items()
@@ -25,6 +28,7 @@ def generate_launch_description():
     )
     return LaunchDescription([
         # Launch arguments
+        declare_use_sim_time_cmd,
         livox_lidar,
         mapping,
         rviz_arg,
@@ -47,7 +51,7 @@ def generate_launch_description():
             executable='localization_sc_node',
             name='localization_sc_node',
             output='screen',
-            parameters=[config_file_path],
+            parameters=[config_file_path,{'use_sim_time': LaunchConfiguration('use_sim_time')}],
             remappings=[
                 ('/Odometry', LaunchConfiguration('odom_topic')),
                 ('/cloud_registered', LaunchConfiguration('lidar_topic'))

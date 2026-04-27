@@ -13,11 +13,13 @@
 #include <quatro/quatro_module.h>
 #include <tf2_ros/transform_broadcaster.h>
 
+#include <Eigen/Dense>
 #include <Eigen/Eigen>
 #include <chrono>
 #include <cmath>
 #include <ctime>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform.hpp>
 #include <memory>
 #include <mutex>
 #include <nano_gicp/nano_gicp.hpp>
@@ -98,6 +100,8 @@ class FastLioLocalizationScQn : public rclcpp::Node {
   explicit FastLioLocalizationScQn(const std::string &node_name);
 
  private:
+  geometry_msgs::msg::Transform poseEigToROSTf2(const Eigen::Matrix4d &pose);
+
   void updateOdomsAndPaths(const PosePcd &pose_pcd_in);
   bool checkIfKeyframe(const PosePcd &pose_pcd_in,
                        const PosePcd &latest_pose_pcd);
