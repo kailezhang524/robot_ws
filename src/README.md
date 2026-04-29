@@ -61,3 +61,8 @@ LIBGL_ALWAYS_SOFTWARE=1 pcl_viewer test.pcd --no-vbo
 ros2 launch livox_ros_driver2 msg_MID360s_launch.py 雷达节点
 ros2 launch fast_livo mapping_mid360s.launch.py SLAM节点
 ### 2) 运行基于SC-QN后端优化的SLAM
+
+###4) 运控板子 192.168.50.101 感归控192.168.50.103
+cd /robotfs/data/jw3_deployment_package/workspace
+python3 udp_receiver_ros2.py 接收其它板子传来的速度 经udp发送cmd_vel
+[INFO] [1777274995.135590385] [udp_to_cmd_vel_node]: ROS 2 UDP Bridge Started. Listening on port 5005...
